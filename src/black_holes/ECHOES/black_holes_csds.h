@@ -20,8 +20,8 @@
 #define SWIFT_ECHOES_BLACK_HOLES_CSDS_H
 
 /* Other Includes */
+#include "black_holes.h"
 #include "csds_io.h"
-#include "stars.h"
 
 #ifdef WITH_CSDS
 
