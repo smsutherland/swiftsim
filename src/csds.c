@@ -19,6 +19,7 @@
  ******************************************************************************/
 
 /* Config parameters. */
+#include "csds_io.h"
 #include "part_type.h"
 
 #include <config.h>
@@ -695,7 +696,7 @@ void csds_copy_bpart_fields(const struct csds_writer *log,
   }
 #ifdef SWIFT_DEBUG_CHECKS
   if (mask) {
-    error("Requested logging of values not present in sparts. %u", mask);
+    error("Requested logging of values not present in bparts. %u", mask);
   }
 #endif
 }
@@ -734,14 +735,14 @@ void csds_log_bparts(struct csds_writer *log, struct bpart *bp, int count,
   /* Build the special flag */
   const int size_special_flag = log->list_fields[CSDS_SPECIAL_FLAGS_INDEX].size;
   const uint32_t special_flags =
-      csds_pack_flags_and_data(flag, flag_data, swift_type_stars);
+      csds_pack_flags_and_data(flag, flag_data, swift_type_black_hole);
 
   /* Compute the size of the buffer. */
   // TODO: write only some fields
   unsigned int mask = 0;
   size_t size = 0;
-  csds_compute_size_and_mask(log->field_pointers[swift_type_stars],
-                             log->number_fields[swift_type_stars], &size,
+  csds_compute_size_and_mask(log->field_pointers[swift_type_black_hole],
+                             log->number_fields[swift_type_black_hole], &size,
                              &mask);
 
   /* Add the flag */
@@ -943,6 +944,11 @@ void csds_init_masks(struct csds_writer *log, const struct engine *e) {
 
         /* Set the masks */
         tmp_num_fields = csds_gravity_define_fields(current);
+        break;
+
+      case swift_type_black_hole:
+        mask_for_type = mask_for_black_hole;
+        // tmp_num_fields = csds_black_holes_define_fields(current);
         break;
 
       default:
