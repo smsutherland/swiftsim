@@ -43,6 +43,7 @@
 /* Local headers. */
 #include "active.h"
 #include "atomic.h"
+#include "black_holes_csds.h"
 #include "chemistry_csds.h"
 #include "engine.h"
 #include "error.h"
@@ -948,7 +949,7 @@ void csds_init_masks(struct csds_writer *log, const struct engine *e) {
 
       case swift_type_black_hole:
         mask_for_type = mask_for_black_hole;
-        // tmp_num_fields = csds_black_holes_define_fields(current);
+        tmp_num_fields = csds_black_holes_define_fields(current);
         break;
 
       default:
