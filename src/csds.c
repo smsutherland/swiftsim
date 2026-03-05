@@ -19,6 +19,8 @@
  ******************************************************************************/
 
 /* Config parameters. */
+#include "part_type.h"
+
 #include <config.h>
 
 #ifdef HAVE_POSIX_FALLOCATE /* Are we on a sensible platform? */
@@ -103,7 +105,15 @@ void csds_log_all_particles(struct csds_writer *log, const struct engine *e,
     }
   }
 
-  if (s->nr_bparts > 0) error("Not implemented");
+  /* log the parts */
+  for (size_t i = 0; i < s->nr_bparts; i++) {
+    struct bpart *bp = &s->bparts[i];
+    if (!bpart_is_inhibited(bp, e) && bp->time_bin != time_bin_not_created) {
+      csds_log_bpart(log, bp, e, /* log_all_fields */ 1, flag,
+                     /* flag_data */ 0);
+    }
+  }
+
   if (s->nr_sinks > 0) error("Not implemented");
 
   if (e->verbose)
@@ -611,6 +621,160 @@ void csds_log_gparts(struct csds_writer *log, struct gpart *p, int count,
     /* Update the pointers */
     p[i].csds_data.last_offset = offset_new;
     p[i].csds_data.steps_since_last_output = 0;
+    buff += size;
+    offset_new += size;
+  }
+#ifdef SWIFT_DEBUG_CHECKS
+  /* Ensure that the buffer was fully used */
+  const int diff = buff - buff_before;
+  if (diff != (int)size_total) {
+    error("It seems that the requested buffer was not totally used: %i != %zi",
+          diff, size_total);
+  }
+#endif
+}
+
+/**
+ * @brief Copy the particle fields into a given buffer.
+ *
+ * @param log The #csds_writer.
+ * @param sp The #spart to copy.
+ * @param e The #engine.
+ * @param mask The mask for the fields to write.
+ * @param offset The offset to the previous log.
+ * @param offset_new The offset of the current record.
+ * @param buff The buffer to use when writing.
+ * @param special_flags The data for the special flags.
+ */
+void csds_copy_bpart_fields(const struct csds_writer *log,
+                            const struct bpart *bp, const struct engine *e,
+                            unsigned int mask, size_t *offset,
+                            size_t offset_new, char *buff,
+                            const uint32_t special_flags) {
+
+#ifdef SWIFT_DEBUG_CHECKS
+  if (mask == 0) {
+    error("You should always log at least one field.");
+  }
+#endif
+
+  /* Write the header. */
+  buff = csds_write_record_header(buff, &mask, offset, offset_new);
+
+  /* Special flags */
+  if (mask & log->list_fields[CSDS_SPECIAL_FLAGS_INDEX].mask) {
+    memcpy(buff, &special_flags,
+           log->list_fields[CSDS_SPECIAL_FLAGS_INDEX].size);
+    buff += log->list_fields[CSDS_SPECIAL_FLAGS_INDEX].size;
+    mask &= ~log->list_fields[CSDS_SPECIAL_FLAGS_INDEX].mask;
+  }
+
+  /* Write the stellar fields */
+  for (int i = 0; i < log->number_fields[swift_type_black_hole]; i++) {
+    struct csds_field *field = &log->field_pointers[swift_type_black_hole][i];
+
+    /* Skip the fields that are not required. */
+    if (!(mask & field->mask)) continue;
+
+    /* Do we have a conversion function? */
+    if (field->conversion_black_holes) {
+      char *tmp_buff = field->conversion_black_holes(bp, e, buff);
+      /* Check that the correct number of bits are written */
+      if ((tmp_buff - buff) != (long int)field->size) {
+        error("The field %s wrote an unexpected number of bits", field->name);
+      }
+    }
+    /* Write it manually */
+    else {
+      memcpy(buff, ((char *)bp) + field->offset, field->size);
+    }
+
+    /* Update the variables */
+    buff += field->size;
+    mask &= ~field->mask;
+  }
+#ifdef SWIFT_DEBUG_CHECKS
+  if (mask) {
+    error("Requested logging of values not present in sparts. %u", mask);
+  }
+#endif
+}
+
+/**
+ * @brief Dump a #spart to the log.
+ *
+ * @param log The #csds_writer
+ * @param sp The #spart to dump.
+ * @param e The #engine.
+ * @param log_all_fields Should we log all the fields?
+ * @param flag The value of the special flags.
+ * @param flag_data The data to write for the flag.
+ */
+void csds_log_bpart(struct csds_writer *log, struct bpart *bp,
+                    const struct engine *e, const int log_all_fields,
+                    const enum csds_special_flags flag, const int flag_data) {
+
+  csds_log_bparts(log, bp, /* count */ 1, e, log_all_fields, flag, flag_data);
+}
+
+/**
+ * @brief Dump a group of #spart to the log.
+ *
+ * @param log The #csds_writer
+ * @param sp The #spart to dump.
+ * @param e The #engine.
+ * @param log_all_fields Should we log all the fields?
+ * @param count The number of particle to dump.
+ * @param flag The value of the special flags.
+ * @param flag_data The data to write for the flag.
+ */
+void csds_log_bparts(struct csds_writer *log, struct bpart *bp, int count,
+                     const struct engine *e, const int log_all_fields,
+                     const enum csds_special_flags flag, const int flag_data) {
+  /* Build the special flag */
+  const int size_special_flag = log->list_fields[CSDS_SPECIAL_FLAGS_INDEX].size;
+  const uint32_t special_flags =
+      csds_pack_flags_and_data(flag, flag_data, swift_type_stars);
+
+  /* Compute the size of the buffer. */
+  // TODO: write only some fields
+  unsigned int mask = 0;
+  size_t size = 0;
+  csds_compute_size_and_mask(log->field_pointers[swift_type_stars],
+                             log->number_fields[swift_type_stars], &size,
+                             &mask);
+
+  /* Add the flag */
+  if (flag != csds_flag_none) {
+    mask |= log->list_fields[CSDS_SPECIAL_FLAGS_INDEX].mask;
+    size += size_special_flag;
+  }
+  size += CSDS_HEADER_SIZE;
+  size_t size_total = count * size;
+
+  /* Allocate a chunk of memory in the logfile of the right size. */
+  size_t offset_new;
+  char *buff =
+      (char *)csds_logfile_writer_get(&log->logfile, size_total, &offset_new);
+#ifdef SWIFT_DEBUG_CHECKS
+  /* Save the buffer position in order to test if the requested buffer was
+   * really used */
+  const char *buff_before = buff;
+#endif
+
+  for (int i = 0; i < count; i++) {
+    /* reset the offset of the previous log */
+    if (flag == csds_flag_create || flag == csds_flag_mpi_enter) {
+      bp[i].csds_data.last_offset = 0;
+    }
+
+    /* Copy everything into the buffer */
+    csds_copy_bpart_fields(log, &bp[i], e, mask, &bp[i].csds_data.last_offset,
+                           offset_new, buff, special_flags);
+
+    /* Update the pointers */
+    bp[i].csds_data.last_offset = offset_new;
+    bp[i].csds_data.steps_since_last_output = 0;
     buff += size;
     offset_new += size;
   }

@@ -984,13 +984,12 @@ void runner_do_csds(struct runner *r, struct cell *c, int timer) {
   struct xpart *restrict xparts = c->hydro.xparts;
   struct gpart *restrict gparts = c->grav.parts;
   struct spart *restrict sparts = c->stars.parts;
+  struct bpart *restrict bparts = c->black_holes.parts;
   const int count = c->hydro.count;
   const int gcount = c->grav.count;
   const int scount = c->stars.count;
+  const int bcount = c->black_holes.count;
 
-  if (c->black_holes.count != 0) {
-    error("Black holes are not implemented in the csds.");
-  }
   if (c->sinks.count != 0) {
     error("Sink particles are not implemented in the csds.");
   }
@@ -1071,6 +1070,26 @@ void runner_do_csds(struct runner *r, struct cell *c, int timer) {
           /* Update counter */
           sp->csds_data.steps_since_last_output += 1;
       }
+    }
+  }
+
+  /* Loop over the bparts in this cell. */
+  for (int k = 0; k < bcount; k++) {
+
+    /* Get a handle on the part. */
+    struct bpart *restrict bp = &bparts[k];
+
+    /* If particle needs to be log */
+    if (bpart_is_active(bp, e)) {
+
+      if (csds_should_write(&bp->csds_data, e->csds)) {
+        /* Write particle */
+        /* Currently writing everything, should adapt it through time */
+        csds_log_bpart(e->csds, bp, e, /* Log_all_fields= */ 0, csds_flag_none,
+                       /* flag_data= */ 0);
+      } else
+        /* Update counter */
+        bp->csds_data.steps_since_last_output += 1;
     }
   }
 

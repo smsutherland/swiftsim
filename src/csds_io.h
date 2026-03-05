@@ -68,6 +68,8 @@ struct csds_field {
                            void *buffer);
   void *(*conversion_stars)(const struct spart *, const struct engine *e,
                             void *buffer);
+  void *(*conversion_black_holes)(const struct bpart *, const struct engine *e,
+                            void *buffer);
 };
 
 /**

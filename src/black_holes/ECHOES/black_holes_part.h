@@ -20,6 +20,7 @@
 #define SWIFT_ECHOES_BLACK_HOLE_PART_H
 
 #include "chemistry_struct.h"
+#include "csds.h"
 #include "fof_struct.h"
 #include "particle_splitting_struct.h"
 #include "timeline.h"
@@ -134,6 +135,11 @@ struct bpart {
    * cases where it was aborted because the black hole was already at a
    * lower potential than all eligible neighbours) */
   int number_of_reposition_attempts;
+
+#ifdef WITH_CSDS
+  /* Additional data for the particle csds */
+  struct csds_part_data csds_data;
+#endif
 
 } SWIFT_STRUCT_ALIGN;
 
