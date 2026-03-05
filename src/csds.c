@@ -997,8 +997,10 @@ void csds_init_masks(struct csds_writer *log, const struct engine *e) {
       if (strcmp(name, list[j].name) == 0) {
         /* Check if the data are the same */
         if (list[i].size != list[j].size) {
-          error("Found two same fields but with different data size (%s).",
-                name);
+          error(
+              "Found two same fields but with different data size (%s) (%ld vs "
+              "%ld).",
+              name, list[i].size, list[j].size);
         }
 
         list[j].mask = 1 << mask;

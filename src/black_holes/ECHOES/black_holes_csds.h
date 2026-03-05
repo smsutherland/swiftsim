@@ -48,6 +48,10 @@ INLINE static int csds_black_holes_define_fields(struct csds_field *fields) {
   csds_define_standard_field(fields[num_fields++], "Masses", struct bpart,
                              mass);
 
+  /* Smoothing lengths */
+  csds_define_standard_field(fields[num_fields++], "SmoothingLengths",
+                             struct bpart, h);
+
   /* Particle IDs */
   csds_define_standard_field(fields[num_fields++], "ParticleIDs", struct bpart,
                              id);
