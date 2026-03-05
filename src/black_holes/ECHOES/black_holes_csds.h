@@ -37,24 +37,27 @@ INLINE static int csds_black_holes_define_fields(struct csds_field *fields) {
   int num_fields = 0;
 
   /* Positions */
-  csds_define_standard_field(fields[num_fields++], "Coordinates", struct bpart,
+  csds_define_standard_field(fields[num_fields], "Coordinates", struct bpart,
                              x);
+  num_fields++;
 
   /* Velocities */
-  csds_define_standard_field(fields[num_fields++], "Velocities", struct bpart,
-                             v);
+  csds_define_standard_field(fields[num_fields], "Velocities", struct bpart, v);
+  num_fields++;
 
   /* Masses */
-  csds_define_standard_field(fields[num_fields++], "Masses", struct bpart,
-                             mass);
+  csds_define_standard_field(fields[num_fields], "Masses", struct bpart, mass);
+  num_fields++;
 
   /* Smoothing lengths */
-  csds_define_standard_field(fields[num_fields++], "SmoothingLengths",
+  csds_define_standard_field(fields[num_fields], "SmoothingLengths",
                              struct bpart, h);
+  num_fields++;
 
   /* Particle IDs */
-  csds_define_standard_field(fields[num_fields++], "ParticleIDs", struct bpart,
+  csds_define_standard_field(fields[num_fields], "ParticleIDs", struct bpart,
                              id);
+  num_fields++;
 
   return num_fields;
 }
