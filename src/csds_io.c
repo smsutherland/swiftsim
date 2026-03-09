@@ -79,6 +79,7 @@ void csds_write_description(struct csds_writer *log, struct engine *e) {
   fprintf(f, "  NumberParts: %li\n", e->s->nr_parts);
   fprintf(f, "  NumberSParts: %li\n", e->s->nr_sparts);
   fprintf(f, "  NumberGParts: %li\n", e->s->nr_gparts);
+  fprintf(f, "  NumberBParts: %li\n", e->s->nr_bparts);
   fprintf(f, "\n");
 
   /* Write the cosmology */
