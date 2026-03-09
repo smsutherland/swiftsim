@@ -157,6 +157,13 @@ void runner_do_gas_swallow(struct runner *r, struct cell *c, int timer) {
                * by another thread before we do the deed. */
               if (!part_is_inhibited(p, e)) {
 
+#ifdef WITH_CSDS
+                if (e->policy & engine_policy_csds) {
+                  /* Log the particle one last time. */
+                  csds_log_part(e->csds, p, xp, e, 1, csds_flag_delete, 0);
+                }
+#endif
+
                 /* Finally, remove the gas particle from the system
                  * Recall that the gpart associated with it is also removed
                  * at the same time. */
@@ -199,6 +206,13 @@ void runner_do_gas_swallow(struct runner *r, struct cell *c, int timer) {
               /* Re-check that the particle has not been removed
                * by another thread before we do the deed. */
               if (!part_is_inhibited(p, e)) {
+
+#ifdef WITH_CSDS
+                if (e->policy & engine_policy_csds) {
+                  /* Log the particle one last time. */
+                  csds_log_part(e->csds, p, xp, e, 1, csds_flag_delete, 0);
+                }
+#endif
 
                 /* Finally, remove the gas particle from the system */
                 cell_remove_part(e, c, p, xp);
@@ -399,6 +413,13 @@ void runner_do_bh_swallow(struct runner *r, struct cell *c, int timer) {
 
               message("BH %lld removing BH particle %lld", bp->id, cell_bp->id);
 
+#ifdef WITH_CSDS
+              if (e->policy & engine_policy_csds) {
+                /* Log the particle one last time. */
+                csds_log_bpart(e->csds, cell_bp, e, 1, csds_flag_delete, 0);
+              }
+#endif
+
               /* Finally, remove the BH particle from the system
                * Recall that the gpart associated with it is also removed
                * at the same time. */
@@ -441,6 +462,13 @@ void runner_do_bh_swallow(struct runner *r, struct cell *c, int timer) {
 
               message("BH %lld removing BH particle %lld (foreign BH case)",
                       bp->id, cell_bp->id);
+
+#ifdef WITH_CSDS
+              if (e->policy & engine_policy_csds) {
+                /* Log the particle one last time. */
+                csds_log_bpart(e->csds, cell_bp, e, 1, csds_flag_delete, 0);
+              }
+#endif
 
               /* Finally, remove the gas particle from the system */
               cell_remove_bpart(e, c, cell_bp);
