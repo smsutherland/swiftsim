@@ -18,6 +18,7 @@
  ******************************************************************************/
 
 /* Config parameters. */
+#include "part_type.h"
 #include "physical_constants.h"
 
 #include <config.h>
@@ -41,6 +42,7 @@
 /* Local headers. */
 #include "black_holes.h"
 #include "common_io.h"
+#include "csds.h"
 #include "engine.h"
 #include "fof_catalogue_io.h"
 #include "hashmap.h"
@@ -2920,6 +2922,10 @@ void fof_seed_black_holes(const struct fof_props *props,
                                     s->e->ti_current);
         tracers_first_init_bpart(bp, s->e->internal_units,
                                  s->e->physical_constants, cosmo);
+#ifdef WITH_CSDS
+        csds_log_part(s->e->csds, p, xp, s->e, 1, csds_flag_change_type,
+                      swift_type_black_hole);
+#endif
 
         /* Move to the next BH slot */
         k++;
