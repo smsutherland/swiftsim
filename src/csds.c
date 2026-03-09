@@ -850,6 +850,9 @@ void csds_ensure_size(struct csds_writer *log, const struct engine *e) {
   /* count spart memory. */
   limit += e->s->nr_sparts;
 
+  /* count bpart memory. */
+  limit += e->s->nr_bparts;
+
   // TODO improve estimate with the size of each particle
   limit *= log->max_record_size;
 
