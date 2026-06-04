@@ -1143,9 +1143,8 @@ void write_output_single(struct engine *e,
 
     /* Don't do anything if there are
      * (a) no particles of this kind in this run, or
-     * (b) if we have disabled every field of this particle type.
-     *     Except not because that causes issues with swiftsimio? */
-    if (!to_write[ptype]) continue;
+     * (b) if we have disabled every field of this particle type. */
+    if (!to_write[ptype] || numFields[ptype] == 0) continue;
 
     /* Add the global information for that particle type to the XMF meta-file */
     xmf_write_groupheader(xmfFile, fileName, /*distributed=*/0,
