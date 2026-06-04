@@ -79,6 +79,10 @@ runner_iact_nonsym_bh_gas_density(
   /* Update ngb counters */
   ++si->num_ngb_density;
 #endif
+
+  bi->v[0] += pj->v[0] * wi;
+  bi->v[1] += pj->v[1] * wi;
+  bi->v[2] += pj->v[2] * wi;
 }
 
 /**

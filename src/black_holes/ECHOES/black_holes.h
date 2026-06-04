@@ -82,6 +82,10 @@ __attribute__((always_inline)) INLINE static void black_holes_init_bpart(
   bp->reposition.delta_x[2] = -FLT_MAX;
   bp->reposition.min_potential = FLT_MAX;
   bp->reposition.potential = FLT_MAX;
+
+  bp->v[0] = 0.;
+  bp->v[1] = 0.;
+  bp->v[2] = 0.;
 }
 
 /**
@@ -176,6 +180,10 @@ __attribute__((always_inline)) INLINE static void black_holes_end_density(
   /* Finish the calculation by inserting the missing h-factors */
   bp->density.wcount *= h_inv_dim;
   bp->density.wcount_dh *= h_inv_dim_plus_one;
+
+  for (int i = 0; i < 3; i++) {
+    bp->v[i] /= bp->density.wcount;
+  }
 }
 
 /**
@@ -202,6 +210,11 @@ black_holes_bpart_has_no_neighbours(struct bpart *restrict bp,
   /* Re-set problematic values */
   bp->density.wcount = kernel_root * h_inv_dim;
   bp->density.wcount_dh = 0.f;
+
+  /* Reset back to the velocity in the gpart */
+  bp->v[0] = bp->gpart->v_full[0];
+  bp->v[1] = bp->gpart->v_full[1];
+  bp->v[2] = bp->gpart->v_full[2];
 }
 
 /**
