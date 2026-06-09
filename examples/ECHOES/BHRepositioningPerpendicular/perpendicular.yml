@@ -1,0 +1,86 @@
+# Define the system of units to use internally. 
+InternalUnitSystem:
+  UnitMass_in_cgs:     1.98841e43    # 10^10 M_sun
+  UnitLength_in_cgs:   3.08567758e24 # 1 Mpc
+  UnitVelocity_in_cgs: 1e5           # 1 km/s
+  UnitCurrent_in_cgs:  1             # Amperes
+  UnitTemp_in_cgs:     1             # Kelvin
+
+# Cosmology:
+#   Omega_b:      0.049
+#   Omega_cdm:    0.251
+#   Omega_lambda: 0.7
+#   h:            0.6711
+#   a_begin:      0.019607843          # z_ini = 50.
+#   a_end:        1.0
+
+# Parameters governing the time integration
+TimeIntegration:
+  time_begin:     0                   # The starting time of the simulation (in internal units).
+  time_end:       0.01                # The end time of the simulation (in internal units).
+  dt_min:     1e-6 
+  dt_max:     1e-2 
+
+# Parameters for the self-gravity scheme
+Gravity:
+  eta:          0.025
+  MAC:          adaptive
+  epsilon_fmm:  0.001
+  theta_cr:     0.5
+  max_physical_baryon_softening: 0.0001
+
+# Parameters of the hydro scheme
+SPH:
+  resolution_eta:      1.2348   # "48 Ngb" with the cubic spline kernel
+  h_min_ratio:         0.1
+  CFL_condition:       0.1
+  initial_temperature: 7075.    # (1 + z_ini)^2 * 2.72K
+  minimal_temperature: 100.
+
+# Parameters governing the snapshots
+Snapshots:
+  subdir:              snapshots
+  basename:            snap
+  compression:         4
+  delta_time:          0.01
+  time_first:          0
+
+# Parameters governing the conserved quantities statistics
+Statistics:
+  delta_time:          1.01
+  scale_factor_first:  0.02
+
+Scheduler:
+  max_top_level_cells: 8
+
+# Parameters related to the initial conditions
+InitialConditions:
+  file_name:                   perpendicular.hdf5
+  periodic:                    0
+  cleanup_h_factors:           0
+  cleanup_velocity_factors:    0
+  generate_gas_in_ics:         0    # Generate gas particles from the DM-only ICs
+  cleanup_smoothing_lengths:   0    # Since we generate gas, make use of the (expensive) cleaning-up procedure.
+
+# FOF:
+#   basename:                        fof_output
+#   scale_factor_first:              0.2         # Scale-factor of first FoF black hole seeding calls.
+#   delta_time:                      1.01        # Scale-factor ratio between consecutive FoF black hole seeding calls.
+#   linking_types:                   [0, 1, 0, 0, 0, 0, 0]
+#   attaching_types:                 [1, 0, 0, 0, 0, 1, 0]
+#   linking_length_ratio:            0.2         # Linking length in units of the main inter-particle separation.
+#   min_group_size:                  16          # The minimum no. of particles required for a group.
+#   black_hole_seed_halo_mass_Msun:  1.5e10      # Minimal halo mass in which to seed a black hole (in solar masses).
+#   seed_black_holes_enabled:        1
+
+Restarts:
+  enable:                          0
+
+ECHOES:
+  merger_threshold_type:           Kernel
+  merger_max_distance_ratio:       3.0
+  max_reposition_distance_ratio:   3.0
+  max_group_mass_change:           1.5
+  central_galaxy_criterion:        PeakMass
+  allow_intergroup_mergers:        0
+  enable_reposition_velocity_threshold: 0
