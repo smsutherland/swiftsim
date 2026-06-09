@@ -177,13 +177,14 @@ __attribute__((always_inline)) INLINE static void black_holes_end_density(
   const float h_inv_dim = pow_dimension(h_inv);       /* 1/h^d */
   const float h_inv_dim_plus_one = h_inv_dim * h_inv; /* 1/h^(d+1) */
 
+  for (int i = 0; i < 3; i++) {
+    bp->v[i] /= bp->density.wcount;
+  }
+
   /* Finish the calculation by inserting the missing h-factors */
   bp->density.wcount *= h_inv_dim;
   bp->density.wcount_dh *= h_inv_dim_plus_one;
 
-  for (int i = 0; i < 3; i++) {
-    bp->v[i] /= bp->density.wcount;
-  }
 }
 
 /**
