@@ -36,6 +36,8 @@ enum BH_merger_threshold {
 
   /*! BHs will merge if one is with the kernel of the other. */
   BH_mergers_kernel,
+
+  BH_mergers_virial,
 };
 
 enum BH_central_criterion {
@@ -162,10 +164,12 @@ static INLINE void black_holes_props_init(struct black_holes_props *bp,
     bp->merger_threshold_type = BH_mergers_2_escape_velocity;
   } else if (!strcmp(temp, "Kernel")) {
     bp->merger_threshold_type = BH_mergers_kernel;
+  } else if (!strcmp(temp, "Virial")) {
+    bp->merger_threshold_type = BH_mergers_virial;
   } else {
     error(
         "The galaxy merger model must be one of EscapeVelocity, "
-        "EscapeVelocity2, or Kernel, "
+        "EscapeVelocity2, Kernel, or Virial, "
         "not %s",
         temp);
   }

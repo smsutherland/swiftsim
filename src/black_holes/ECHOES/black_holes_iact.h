@@ -318,13 +318,16 @@ runner_iact_nonsym_bh_bh_swallow(const float r2, const float dx[3],
     M = bj->mass;
   }
 
-  /* (Square of) max swallowing distance allowed based on the softening */
-  const float max_dist_merge2 =
-      kernel_gravity_softening_plummer_equivalent_inv *
-      kernel_gravity_softening_plummer_equivalent_inv *
-      bh_props->max_merging_distance_ratio *
-      bh_props->max_merging_distance_ratio * grav_props->epsilon_baryon_cur *
-      grav_props->epsilon_baryon_cur;
+  /* Find the most massive of the two BHs */
+  float M_halo = bi->fof_properties.max_group_mass;
+  if (bj->fof_properties.max_group_mass > M_halo) {
+    M_halo = bj->fof_properties.max_group_mass;
+  }
+
+  /* sutherland NOTE: we have a lot of duplicated code here.
+   * Once the model is squared away, we can clean this up, optimize for the main
+   * condition we use, and potentially even remove the other conditions
+   * altogether. */
 
   int can_merge = 0;
   if (bh_props->merger_threshold_type == BH_mergers_escape_velocity) {
@@ -346,7 +349,15 @@ runner_iact_nonsym_bh_bh_swallow(const float r2, const float dx[3],
     float v2_threshold;
     v2_threshold = 2.f * G_Newton * M / sqrt(r2);
 
-    can_merge = (v2_pec < v2_threshold);
+    /* (Square of) max swallowing distance allowed based on the softening */
+    const float max_dist_merge2 =
+        kernel_gravity_softening_plummer_equivalent_inv *
+        kernel_gravity_softening_plummer_equivalent_inv *
+        bh_props->max_merging_distance_ratio *
+        bh_props->max_merging_distance_ratio * grav_props->epsilon_baryon_cur *
+        grav_props->epsilon_baryon_cur;
+
+    can_merge = (v2_pec < v2_threshold) && (r2 <= max_dist_merge2);
   } else if (bh_props->merger_threshold_type == BH_mergers_2_escape_velocity) {
 
     /* Compute relative velocity */
@@ -366,10 +377,49 @@ runner_iact_nonsym_bh_bh_swallow(const float r2, const float dx[3],
     float v2_threshold;
     v2_threshold = 8.f * G_Newton * M / sqrt(r2);
 
-    can_merge = (v2_pec < v2_threshold);
+    /* (Square of) max swallowing distance allowed based on the softening */
+    const float max_dist_merge2 =
+        kernel_gravity_softening_plummer_equivalent_inv *
+        kernel_gravity_softening_plummer_equivalent_inv *
+        bh_props->max_merging_distance_ratio *
+        bh_props->max_merging_distance_ratio * grav_props->epsilon_baryon_cur *
+        grav_props->epsilon_baryon_cur;
+
+    can_merge = (v2_pec < v2_threshold) && (r2 <= max_dist_merge2);
   } else if (bh_props->merger_threshold_type == BH_mergers_kernel) {
-    /* The kernel criterion is always handled below. */
+
     can_merge = 1;
+  } else if (bh_props->merger_threshold_type == BH_mergers_virial) {
+
+    /* Compute relative velocity */
+    const float delta_v[3] = {
+        bi->v[0] - bj->v[0],
+        bi->v[1] - bj->v[1],
+        bi->v[2] - bj->v[2],
+    };
+    /* |v|^2 */
+    const float v2 = delta_v[0] * delta_v[0] + delta_v[1] * delta_v[1] +
+                     delta_v[2] * delta_v[2];
+    /* Peculiar velocity.
+     * Velocity in SWIFT is (v_pec * a) */
+    const float v2_pec = v2 * cosmo->a2_inv;
+
+    /* If v^2 is below this threshold, the BHs will merge */
+    float v2_threshold;
+    v2_threshold = 8.f * G_Newton * M / sqrt(r2);
+
+    float virial_density_phys =
+        cosmo->critical_density * cosmo->overdensity_BN98;
+
+    /* sutherland NOTE: Is there a faster way to calculate this?
+     * We could potentially make use of the custom icbrtf when its enabled. */
+    float virial_radius_phys =
+        cbrtf(0.75 * M_halo / (virial_density_phys * M_PI));
+
+    float virial_radius2 =
+        virial_radius_phys * virial_radius_phys * cosmo->a2_inv;
+
+    can_merge = (v2_pec <= v2_threshold) && (r2 <= 0.15 * virial_radius2);
   } else {
     /* Cannot happen! */
 #ifdef SWIFT_DEBUG_CHECKS
@@ -380,7 +430,7 @@ runner_iact_nonsym_bh_bh_swallow(const float r2, const float dx[3],
 
   /* If they are close enough and the peculiar velocity is under the escape
    * velocity threshold. */
-  if (can_merge && (r2 < max_dist_merge2)) {
+  if (can_merge) {
     /* This particle is swallowed by the BH with the largest mass of all the
      * candidates wanting to swallow it (we use IDs to break ties)*/
     if ((bj->merger_data.swallow_mass < bi->mass) ||
