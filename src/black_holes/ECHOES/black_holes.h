@@ -504,6 +504,7 @@ INLINE static void black_holes_create_from_gas(
   bp->fof_properties.max_group_mass = 0.f;
   bp->fof_properties.distance_to_CoM = 0.f;
   bp->fof_properties.is_central = 0;
+  bp->fof_properties.virial_radius = 0.;
 }
 
 /**
@@ -516,11 +517,13 @@ INLINE static void black_holes_create_from_gas(
  * @param is_central Is the BH central? BHs outside of FoF groups are never
  * central.
  * @param bp The black hole to update.
+ * @param cosmo The current cosmological model.
  */
 __attribute__((always_inline)) INLINE static void
 black_holes_update_fof_properties(const struct black_holes_props *const props,
                                   float r2, float group_mass, int is_central,
-                                  struct bpart *const bp) {
+                                  struct bpart *const bp,
+                                  const struct cosmology *const cosmo) {
   if (bp->gpart->fof_data.group_id == props->group_id_default) {
     /* BHs that are not in a group have their group data reset */
     bp->fof_properties.group_mass = 0.f;
@@ -540,6 +543,25 @@ black_holes_update_fof_properties(const struct black_holes_props *const props,
     if (is_central) {
       bp->fof_properties.max_group_mass =
           fmaxf(bp->fof_properties.max_group_mass, group_mass);
+
+      float virial_density_phys =
+          cosmo->critical_density * cosmo->overdensity_BN98;
+
+      /* sutherland NOTE: Is there a faster way to calculate this?
+       * We could potentially make use of the custom icbrtf when its enabled. */
+      float virial_radius_phys =
+          cbrtf(0.75 * bp->fof_properties.max_group_mass /
+                (virial_density_phys * M_PI));
+
+      /* sutherland NOTE: How often do we want to update this? The target
+       * overdensity changes with redshift, so this can fall out of date.
+       * black_holes_init_bpart seems like a good place to re-calculate, but
+       * that doesn't have access to the cosmology. Should we just add the
+       * cosmology there as a parameter?
+       * Alternately, we could avoid storing this and just calculate it on the
+       * fly whenever we need it. Doing this, we can even still output it in
+       * snapshots. */
+      bp->fof_properties.virial_radius = virial_radius_phys * cosmo->a_inv;
     }
   }
 }

@@ -157,6 +157,15 @@ struct bpart {
      * its previous value */
     float distance_to_CoM;
 
+    /* Virial radius of the FoF group.
+     *
+     * This uses the dark matter mass of the halo as a standin for the virial
+     * mass. This assumption works best when the linking length ratio is 0.2.
+     * The radius is calculated assuming a sphere of some multiple of the
+     * present critical density. The overdensity is based on the fit from Bryan
+     * & Norman 1998. */
+    float virial_radius;
+
   } fof_properties;
 
   /* sutherland: note to DAA - properties that we want to store for trinity can

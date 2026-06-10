@@ -166,6 +166,12 @@ INLINE static void black_holes_write_particles(const struct bpart *bparts,
       "DistanceToGroup", FLOAT, 1, UNIT_CONV_LENGTH, 1.f, bparts,
       fof_properties.distance_to_CoM, "Distance to FOF group center of mass.");
 
+  list[num++] = io_make_output_field(
+      "VirialRadii", FLOAT, 1, UNIT_CONV_LENGTH, 1.f, bparts,
+      fof_properties.virial_radius,
+      "Virial radius of the host halo. Uses MaxGroupMasses as the virial mass "
+      "and the Bryan & Norman 1998 overdensity fit.");
+
   list[num++] = io_make_physical_output_field(
       "ParticleIDs", ULONGLONG, 1, UNIT_CONV_NO_UNITS, 0.f, bparts, id,
       /*can convert to comoving=*/0, "Unique ID of the particles");

@@ -358,11 +358,13 @@ INLINE static void black_holes_create_from_gas(
  * @param is_central Is the BH central? BHs outside of FoF groups are never
  * central.
  * @param bp The black hole to update.
+ * @param cosmo The current cosmological model.
  */
 __attribute__((always_inline)) INLINE static void
 black_holes_update_fof_properties(const struct black_holes_props *const props,
                                   float r2, float group_mass, int is_central,
-                                  struct bpart *const bp) {}
+                                  struct bpart *const bp,
+                                  const struct cosmology *const cosmo) {}
 
 /**
  * @brief Give this #bpart's priority for being considered the central black

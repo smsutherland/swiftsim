@@ -318,12 +318,6 @@ runner_iact_nonsym_bh_bh_swallow(const float r2, const float dx[3],
     M = bj->mass;
   }
 
-  /* Find the most massive of the two BHs */
-  float M_halo = bi->fof_properties.max_group_mass;
-  if (bj->fof_properties.max_group_mass > M_halo) {
-    M_halo = bj->fof_properties.max_group_mass;
-  }
-
   /* sutherland NOTE: we have a lot of duplicated code here.
    * Once the model is squared away, we can clean this up, optimize for the main
    * condition we use, and potentially even remove the other conditions
@@ -389,6 +383,7 @@ runner_iact_nonsym_bh_bh_swallow(const float r2, const float dx[3],
   } else if (bh_props->merger_threshold_type == BH_mergers_kernel) {
 
     can_merge = 1;
+
   } else if (bh_props->merger_threshold_type == BH_mergers_virial) {
 
     /* Compute relative velocity */
@@ -408,16 +403,14 @@ runner_iact_nonsym_bh_bh_swallow(const float r2, const float dx[3],
     float v2_threshold;
     v2_threshold = 8.f * G_Newton * M / sqrt(r2);
 
-    float virial_density_phys =
-        cosmo->critical_density * cosmo->overdensity_BN98;
+    float virial_radius = bi->fof_properties.virial_radius;
+    /* bi must have the larger virial radius since we checked at the top that it
+     * has the higher max_mass.
+     if (bj->fof_properties.virial_radius > virial_radius) {
+         virial_radius = bj->fof_properties.virial_radius;
+     } */
 
-    /* sutherland NOTE: Is there a faster way to calculate this?
-     * We could potentially make use of the custom icbrtf when its enabled. */
-    float virial_radius_phys =
-        cbrtf(0.75 * M_halo / (virial_density_phys * M_PI));
-
-    float virial_radius2 =
-        virial_radius_phys * virial_radius_phys * cosmo->a2_inv;
+    float virial_radius2 = virial_radius * virial_radius;
 
     can_merge = (v2_pec <= v2_threshold) && (r2 <= 0.15 * virial_radius2);
   } else {

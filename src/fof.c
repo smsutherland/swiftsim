@@ -4217,7 +4217,7 @@ void fof_set_black_holes_info(const struct fof_props *props,
     }
 
     black_holes_update_fof_properties(bh_props, r2, group_mass, is_central,
-                                      bpart);
+                                      bpart, cosmo);
   }
 
   swift_free("fof_min_bpart_radii", central_priority);
