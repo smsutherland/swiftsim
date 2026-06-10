@@ -174,8 +174,14 @@ static INLINE void black_holes_props_init(struct black_holes_props *bp,
         temp);
   }
 
-  bp->max_merging_distance_ratio =
-      parser_get_param_float(params, "ECHOES:merger_max_distance_ratio");
+  if ((bp->merger_threshold_type == BH_mergers_escape_velocity) ||
+      (bp->merger_threshold_type == BH_mergers_2_escape_velocity) ||
+      (bp->merger_threshold_type == BH_mergers_virial)) {
+    bp->max_merging_distance_ratio =
+        parser_get_param_float(params, "ECHOES:merger_max_distance_ratio");
+  } else {
+    bp->max_merging_distance_ratio = FLT_MAX;
+  }
 
   bp->max_reposition_distance_ratio =
       parser_get_param_float(params, "ECHOES:max_reposition_distance_ratio");

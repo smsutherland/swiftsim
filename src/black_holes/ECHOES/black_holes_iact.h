@@ -410,9 +410,11 @@ runner_iact_nonsym_bh_bh_swallow(const float r2, const float dx[3],
          virial_radius = bj->fof_properties.virial_radius;
      } */
 
-    float virial_radius2 = virial_radius * virial_radius;
+    float r2_threshold = virial_radius * virial_radius *
+                         bh_props->max_merging_distance_ratio *
+                         bh_props->max_merging_distance_ratio;
 
-    can_merge = (v2_pec <= v2_threshold) && (r2 <= 0.15 * virial_radius2);
+    can_merge = (v2_pec <= v2_threshold) && (r2 <= r2_threshold);
   } else {
     /* Cannot happen! */
 #ifdef SWIFT_DEBUG_CHECKS
