@@ -4127,6 +4127,9 @@ void fof_set_black_holes_info(const struct fof_props *props,
                               const struct black_holes_props *bh_props,
                               const struct phys_const *constants,
                               const struct cosmology *cosmo, struct space *s) {
+  const int verbose = s->e->verbose;
+  const ticks tic_total = getticks();
+
   struct bpart *bparts = s->bparts;
   size_t nr_bparts = s->nr_bparts;
   const int periodic = s->periodic;
@@ -4222,6 +4225,10 @@ void fof_set_black_holes_info(const struct fof_props *props,
 
   swift_free("fof_central_bh_priority", central_priority);
   swift_free("fof_central_bh_id", central_part_id);
+
+  if (verbose)
+    message("took %.3f %s.", clocks_from_ticks(getticks() - tic_total),
+            clocks_getunit());
 }
 
 #endif /* WITH_FOF */
