@@ -564,7 +564,8 @@ black_holes_update_fof_properties(const struct black_holes_props *const props,
        * snapshots. */
       bp->fof_properties.virial_radius = virial_radius_phys * cosmo->a_inv;
 
-      if ((bp->fof_properties.virial_radius *
+      if ((props->merger_threshold_type == BH_mergers_virial) &&
+          (bp->fof_properties.virial_radius *
            props->max_merging_distance_ratio) > bp->h)
         warning(
             "BH %lld has a merger distance greater than it's kernel size. (%g "
