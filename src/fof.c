@@ -4134,13 +4134,13 @@ void fof_set_black_holes_info(const struct fof_props *props,
 
   float *central_priority = NULL;
   long long *central_part_id = NULL;
-  if (swift_memalign("fof_central_gal_mass", (void **)&central_priority, 32,
+  if (swift_memalign("fof_central_bh_priority", (void **)&central_priority, 32,
                      props->num_groups * sizeof(double)) != 0)
-    error("Failed to allocate list of galaxy mass for FOF search.");
+    error("Failed to allocate list of black hole priority for FOF search.");
 
-  if (swift_memalign("fof_min_bpart_id", (void **)&central_part_id, 32,
+  if (swift_memalign("fof_central_bh_id", (void **)&central_part_id, 32,
                      props->num_groups * sizeof(long long)) != 0)
-    error("Failed to allocate list of galaxy ID for FOF search.");
+    error("Failed to allocate list of black hole ID for FOF search.");
 
   /* Initialise the arrays to the limit */
   for (size_t i = 0; i < (size_t)props->num_groups; i++) {
@@ -4220,8 +4220,8 @@ void fof_set_black_holes_info(const struct fof_props *props,
                                       bpart);
   }
 
-  swift_free("fof_min_bpart_radii", central_priority);
-  swift_free("fof_min_bpart_id", central_part_id);
+  swift_free("fof_central_bh_priority", central_priority);
+  swift_free("fof_central_bh_id", central_part_id);
 }
 
 #endif /* WITH_FOF */
