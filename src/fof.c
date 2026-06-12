@@ -18,6 +18,7 @@
  ******************************************************************************/
 
 /* Config parameters. */
+#include "black_holes/ECHOES/black_holes_properties.h"
 #include "physical_constants.h"
 
 #include <config.h>
@@ -4123,40 +4124,25 @@ void fof_struct_restore(struct fof_props *props, FILE *stream) {
   fof_set_current_types(props);
 }
 
-void fof_set_black_holes_info(const struct fof_props *props,
-                              const struct black_holes_props *bh_props,
-                              const struct phys_const *constants,
-                              const struct cosmology *cosmo, struct space *s) {
-  const int verbose = s->e->verbose;
-  const ticks tic_total = getticks();
+struct fof_set_black_holes_info_data {
+  const struct fof_props *props;
+  const struct black_holes_props *bh_props;
+  float *central_priority;
+  long long *central_part_id;
+  struct space *space;
+};
 
-  struct bpart *bparts = s->bparts;
-  size_t nr_bparts = s->nr_bparts;
-  const int periodic = s->periodic;
-  const double dim[3] = {s->dim[0], s->dim[1], s->dim[2]};
+void fof_get_bpart_priority_mapper(void *bparts_void, int N, void *extra_data) {
+  struct bpart *bparts = (struct bpart *)bparts_void;
+  struct fof_set_black_holes_info_data *data =
+      (struct fof_set_black_holes_info_data *)extra_data;
 
-  float *central_priority = NULL;
-  long long *central_part_id = NULL;
-  if (swift_memalign("fof_central_bh_priority", (void **)&central_priority, 32,
-                     props->num_groups * sizeof(double)) != 0)
-    error("Failed to allocate list of black hole priority for FOF search.");
+  const struct fof_props *props = data->props;
+  const struct black_holes_props *bh_props = data->bh_props;
+  float *central_priority = data->central_priority;
+  long long *central_part_id = data->central_part_id;
 
-  if (swift_memalign("fof_central_bh_id", (void **)&central_part_id, 32,
-                     props->num_groups * sizeof(long long)) != 0)
-    error("Failed to allocate list of black hole ID for FOF search.");
-
-  /* Initialise the arrays to the limit */
-  for (size_t i = 0; i < (size_t)props->num_groups; i++) {
-    /* sutherland NOTE: I use -1 here so that a newly formed galaxy with a
-     * priority of 0 will be greater than the default value. */
-    central_priority[i] = -1.f;
-  }
-  for (size_t i = 0; i < (size_t)props->num_groups; i++) {
-    central_part_id[i] = LLONG_MAX;
-  }
-
-  /* Loop 1: Go through all the galaxies to determine which is the central */
-  for (size_t i = 0; i < nr_bparts; i++) {
+  for (int i = 0; i < N; i++) {
     struct bpart *bpart = &bparts[i];
     if (bpart->time_bin >= time_bin_inhibited) continue;
     if (bpart->gpart->fof_data.group_id == props->group_id_default) continue;
@@ -4173,10 +4159,22 @@ void fof_set_black_holes_info(const struct fof_props *props,
       central_part_id[index] = bpart->id;
     }
   }
+}
 
-  /* Loop 2: Update BH particles according to whether they are the central or
-   * not. */
-  for (size_t i = 0; i < nr_bparts; i++) {
+void fof_set_bpart_data_mapper(void *bparts_void, int N, void *extra_data) {
+  struct bpart *bparts = (struct bpart *)bparts_void;
+  struct fof_set_black_holes_info_data *data =
+      (struct fof_set_black_holes_info_data *)extra_data;
+
+  const struct fof_props *props = data->props;
+  const struct black_holes_props *bh_props = data->bh_props;
+  long long *central_part_id = data->central_part_id;
+  struct space *s = data->space;
+
+  const int periodic = s->periodic;
+  const double dim[3] = {s->dim[0], s->dim[1], s->dim[2]};
+
+  for (int i = 0; i < N; i++) {
     struct bpart *bpart = &bparts[i];
 
     /* Ignore inhibited particles.
@@ -4222,6 +4220,55 @@ void fof_set_black_holes_info(const struct fof_props *props,
     black_holes_update_fof_properties(bh_props, r2, group_mass, is_central,
                                       bpart);
   }
+}
+
+void fof_set_black_holes_info(const struct fof_props *props,
+                              const struct black_holes_props *bh_props,
+                              const struct phys_const *constants,
+                              const struct cosmology *cosmo, struct space *s) {
+  const int verbose = s->e->verbose;
+  const ticks tic_total = getticks();
+
+  struct bpart *bparts = s->bparts;
+  size_t nr_bparts = s->nr_bparts;
+
+  float *central_priority = NULL;
+  long long *central_part_id = NULL;
+  if (swift_memalign("fof_central_bh_priority", (void **)&central_priority, 32,
+                     props->num_groups * sizeof(double)) != 0)
+    error("Failed to allocate list of black hole priority for FOF search.");
+
+  if (swift_memalign("fof_central_bh_id", (void **)&central_part_id, 32,
+                     props->num_groups * sizeof(long long)) != 0)
+    error("Failed to allocate list of black hole ID for FOF search.");
+
+  /* Initialise the arrays to the limit */
+  for (size_t i = 0; i < (size_t)props->num_groups; i++) {
+    /* sutherland NOTE: I use -1 here so that a newly formed galaxy with a
+     * priority of 0 will be greater than the default value. */
+    central_priority[i] = -1.f;
+  }
+  for (size_t i = 0; i < (size_t)props->num_groups; i++) {
+    central_part_id[i] = LLONG_MAX;
+  }
+
+  /* Loop 1: Go through all the galaxies to determine which is the central */
+  struct fof_set_black_holes_info_data mapper_data;
+  mapper_data.props = props;
+  mapper_data.bh_props = bh_props;
+  mapper_data.central_priority = central_priority;
+  mapper_data.central_part_id = central_part_id;
+  mapper_data.space = s;
+
+  threadpool_map(&s->e->threadpool, fof_get_bpart_priority_mapper, bparts,
+                 nr_bparts, sizeof(struct bpart), threadpool_auto_chunk_size,
+                 &mapper_data);
+
+  /* Loop 2: Update BH particles according to whether they are the central or
+   * not. */
+  threadpool_map(&s->e->threadpool, fof_set_bpart_data_mapper, bparts,
+                 nr_bparts, sizeof(struct bpart), threadpool_auto_chunk_size,
+                 &mapper_data);
 
   swift_free("fof_central_bh_priority", central_priority);
   swift_free("fof_central_bh_id", central_part_id);
